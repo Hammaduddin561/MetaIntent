@@ -1,5 +1,7 @@
 # MetaIntent Agent
 
+🚀 **[Live Demo](https://main.d2hb7u72uflrkw.amplifyapp.com/)** | [GitHub Repository](https://github.com/Hammaduddin561/MetaIntent)
+
 Modular, autonomous onboarding agent designed for low-bandwidth environments with dual deployment on AWS Bedrock and NVIDIA NIM.
 
 ## Features
