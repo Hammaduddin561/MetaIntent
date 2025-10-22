@@ -4,11 +4,11 @@ frontend:
     preBuild:
       commands:
         - echo "Installing dependencies..."
-        - npm ci
+        - npm install || echo "No dependencies to install"
     build:
       commands:
         - echo "Building project..."
-        - npm run build || echo "No build step required"
+        - echo "Static site - no build step required"
   artifacts:
     baseDirectory: /
     files:
