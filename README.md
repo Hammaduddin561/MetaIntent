@@ -237,14 +237,6 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 
-## 👤 Author
-
-**Md Hammaduddin**
-- GitHub: [@Hammaduddin561](https://github.com/Hammaduddin561)
-- Email: hammaduddin561@gmail.com
-
----
-
 <div align="center">
 
 ### ⭐ Star this repo if you find it helpful!
