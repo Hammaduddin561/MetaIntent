@@ -13,7 +13,7 @@
 
 *Turn vague ideas into clear actions. MetaIntent clarifies ambiguity, generates custom agents, and helps you achieve your goals.*
 
-[Live Demo](https://main.d2hb7u72uflrkw.amplifyapp.com/) • [Features](#-features) • [Architecture](#️-architecture) • [Quick Start](#-quick-start)
+[Features](#-features) • [Architecture](#️-architecture) • [Quick Start](#-quick-start)
 
 </div>
 
