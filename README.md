@@ -1,118 +1,261 @@
-# MetaIntent Agent
+<div align="center">
 
-🚀 **[Live Demo](https://main.d2hb7u72uflrkw.amplifyapp.com/)** | [GitHub Repository](https://github.com/Hammaduddin561/MetaIntent)
+![MetaIntent Banner](banner.png)
 
-Modular, autonomous onboarding agent designed for low-bandwidth environments with dual deployment on AWS Bedrock and NVIDIA NIM.
+# 🤖 MetaIntent
 
-## Features
+### Self-Evolving AI Agent System with AWS Bedrock & NVIDIA NIM
 
-- **Multi-Modal Identity Verification**: Voice, text, and document inputs
-- **Graceful Fallback Logic**: Bedrock → NIM → Cache → Static flow
-- **Autonomous API Chaining**: Self-orchestrating API calls
-- **Low-Bandwidth Optimization**: Aggressive caching and token efficiency
-- **Cost-Efficient**: Stays within $100 AWS budget
-- **Modular Backend Switching**: Easy LLM provider swapping
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-View_Site-00D9FF?style=for-the-badge)](https://main.d2hb7u72uflrkw.amplifyapp.com/)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Hammaduddin561/MetaIntent)
+[![TypeScript](https://img.shields.io/badge/TypeScript-62.1%25-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![AWS](https://img.shields.io/badge/AWS-Bedrock-FF9900?style=for-the-badge&logo=amazonaws)](https://aws.amazon.com/bedrock/)
 
-## Architecture
+*Turn vague ideas into clear actions. MetaIntent clarifies ambiguity, generates custom agents, and helps you achieve your goals.*
 
-- **Serverless**: AWS Lambda + API Gateway
-- **State Management**: DynamoDB with TTL
-- **Caching & Logging**: S3
-- **LLM Backends**: AWS Bedrock (Claude 4.5) + NVIDIA NIM
+[Live Demo](https://main.d2hb7u72uflrkw.amplifyapp.com/) • [Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start)
 
-## Quick Start
+</div>
+
+---
+
+## 🌟 Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 🎯 **Intelligent Intent Understanding**
+- Advanced ambiguity detection
+- Context-aware clarification
+- Goal-oriented conversation flow
+
+### 🔄 **Self-Evolving Agents**
+- Dynamic agent generation
+- Autonomous API orchestration
+- Adaptive task execution
+
+</td>
+<td width="50%">
+
+### 🚀 **Multi-Modal Support**
+- Voice input processing
+- Document upload & analysis
+- Text-based interactions
+
+### ⚡ **Optimized Performance**
+- Low-bandwidth optimization
+- Aggressive caching strategy
+- Cost-efficient ($100 budget)
+
+### ⚡ **Optimized Performance**
+- Low-bandwidth optimization
+- Aggressive caching strategy
+- Cost-efficient ($100 budget)
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+graph TB
+    A[User Input] --> B[API Gateway]
+    B --> C[MetaIntent Engine]
+    C --> D{Ambiguity?}
+    D -->|Yes| E[Clarification Loop]
+    D -->|No| F[Agent Generator]
+    E --> C
+    F --> G[Sub-Agent Orchestrator]
+    G --> H[AWS Bedrock]
+    G --> I[NVIDIA NIM]
+    H --> J[Goal Execution]
+    I --> J
+    J --> K[Response]
+```
+
+### Tech Stack
+
+<div align="center">
+
+| Component | Technology |
+|-----------|-----------|
+| **Frontend** | HTML5, CSS3, Vanilla JavaScript |
+| **Backend** | TypeScript, AWS Lambda |
+| **AI Models** | AWS Bedrock (Claude 3.5), NVIDIA NIM |
+| **API Gateway** | AWS API Gateway |
+| **State Management** | AWS DynamoDB with TTL |
+| **Storage** | AWS S3 (caching & logs) |
+| **Deployment** | AWS Amplify, SAM |
+
+</div>
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
+```bash
+# Required tools
 - Node.js 20+
 - AWS CLI configured
-- AWS SAM CLI (optional, for local testing)
+- AWS SAM CLI (optional)
+```
 
 ### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/Hammaduddin561/MetaIntent.git
+cd MetaIntent
+
+# Install dependencies
 npm install
-```
 
-### Configuration
-
-Copy `.env.example` to `.env` and configure:
-
-```bash
+# Configure environment
 cp .env.example .env
+# Edit .env with your AWS credentials
 ```
 
-### Build
+### Local Development
 
 ```bash
+# Build the project
 npm run build
-```
 
-### Local Testing
-
-```bash
+# Start local server
 sam local start-api
+
+# Or use simple Python server for frontend
+python -m http.server 8000
 ```
 
 ### Deploy to AWS
 
 ```bash
+# Automated deployment
 npm run deploy
-```
 
-Or manually:
-
-```bash
+# Manual SAM deployment
 sam build
 sam deploy --guided
 ```
 
-## Project Structure
+---
+
+## 📁 Project Structure
 
 ```
-metaintent-agent/
-├── src/
-│   ├── adapters/        # LLM backend adapters
-│   ├── lambdas/         # Lambda function handlers
-│   ├── models/          # Type definitions and data models
-│   ├── utils/           # Utility functions (retry, cache, logging)
-│   └── services/        # Business logic services
-├── .kiro/
-│   └── specs/           # Feature specifications
-├── dist/                # Compiled TypeScript output
-├── package.json
-├── tsconfig.json
-└── README.md
+MetaIntent/
+├── 📄 index.html              # Main website
+├── 🎨 style.css               # Styling
+├── ⚡ script.js               # Client-side logic
+├── 🖼️ metaintent_logo.png     # Logo assets
+├── 📋 amplify.yml             # AWS Amplify config
+├── 📦 src/
+│   ├── adapters/              # LLM backend adapters
+│   │   ├── BedrockAdapter.ts
+│   │   ├── NIMAdapter.ts
+│   │   └── LLMAdapterFactory.ts
+│   ├── lambdas/               # Lambda handlers
+│   │   ├── metaintent.ts
+│   │   ├── intent.ts
+│   │   ├── chain.ts
+│   │   └── router.ts
+│   ├── services/              # Core services
+│   │   ├── MetaLoopEngine.ts
+│   │   ├── AmbiguityDetector.ts
+│   │   ├── AgentGenerator.ts
+│   │   └── SubAgentOrchestrator.ts
+│   ├── models/                # Type definitions
+│   └── utils/                 # Utilities (cache, retry, logger)
+├── 🚀 lambda-deploy/          # Lambda deployment
+├── ⚛️ metaintent-webapp/      # React webapp
+└── 📚 README.md               # This file
 ```
 
-## Documentation
+---
 
-- [Requirements](.kiro/specs/meta-intent-agent/requirements.md)
-- [Design](.kiro/specs/meta-intent-agent/design.md)
-- [Tasks](.kiro/specs/meta-intent-agent/tasks.md)
-- [Deployment Guide](.kiro/specs/meta-intent-agent/DEPLOYMENT.md)
+## 💡 How It Works
 
-## Testing
+1. **Input Processing**: Accept voice, text, or document input
+2. **Ambiguity Detection**: Identify unclear or incomplete requests
+3. **Clarification Loop**: Engage in conversation to refine intent
+4. **Agent Generation**: Create specialized sub-agents for specific tasks
+5. **Orchestration**: Coordinate multiple agents and API calls
+6. **Execution**: Deliver results with graceful fallback handling
 
-Test the deployed API:
+---
+
+## 🧪 Testing
+
+### Test the Live API
 
 ```bash
-curl -X POST https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod/onboard \
+curl -X POST https://main.d2hb7u72uflrkw.amplifyapp.com/api/onboard \
   -H "Content-Type: application/json" \
-  -d '{"input": "My name is John Doe", "modality": "text"}'
+  -d '{"input": "Help me build a website", "modality": "text"}'
 ```
 
-## Cost Monitoring
+### Local Testing
 
-Estimated monthly costs: ~$59 (well under $100 budget)
+```bash
+# Run tests
+npm test
 
-- Lambda: ~$5
-- DynamoDB: ~$2
-- S3: ~$1
-- SageMaker (NIM): ~$30
-- Bedrock: ~$20
-- API Gateway: ~$1
+# Test specific lambda
+sam local invoke MetaIntentFunction --event events/test-event.json
+```
 
-## License
+---
 
-MIT
+## 💰 Cost Breakdown
+
+Estimated monthly costs (under $100 budget):
+
+| Service | Monthly Cost |
+|---------|-------------|
+| AWS Lambda | ~$5 |
+| DynamoDB | ~$2 |
+| S3 Storage | ~$1 |
+| SageMaker (NIM) | ~$30 |
+| AWS Bedrock | ~$20 |
+| API Gateway | ~$1 |
+| AWS Amplify | **FREE** |
+| **Total** | **~$59/month** |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details
+
+---
+
+## 👤 Author
+
+**Md Hammaduddin**
+- GitHub: [@Hammaduddin561](https://github.com/Hammaduddin561)
+- Email: hammaduddin561@gmail.com
+
+---
+
+<div align="center">
+
+### ⭐ Star this repo if you find it helpful!
+
+Made with ❤️ using AWS Bedrock & NVIDIA NIM
+
+[🚀 Live Demo](https://main.d2hb7u72uflrkw.amplifyapp.com/) • [📝 Report Bug](https://github.com/Hammaduddin561/MetaIntent/issues) • [💡 Request Feature](https://github.com/Hammaduddin561/MetaIntent/issues)
+
+</div>
