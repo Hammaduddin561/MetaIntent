@@ -1,0 +1,201 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: MetaIntent Agent - Autonomous Onboarding System
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 60
+    MemorySize: 512
+    Environment:
+      Variables:
+        SESSION_TABLE_NAME: !Ref SessionTable
+        CACHE_BUCKET_NAME: !Ref CacheBucket
+        LOG_BUCKET_NAME: !Ref LogBucket
+        BEDROCK_MODEL_ID: anthropic.claude-3-5-sonnet-20241022-v2:0
+        BEDROCK_REGION: us-east-1
+        BEDROCK_MAX_TOKENS: 2000
+        BEDROCK_TEMPERATURE: 0.7
+        PRIMARY_LLM_BACKEND: bedrock
+        FALLBACK_LLM_BACKEND: cache
+        ENABLE_BEDROCK: true
+
+Resources:
+  # API Gateway
+  MetaIntentAPI:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+        AllowHeaders:
+          - '*'
+
+  # Lambda Functions
+  
+  # NEW: MetaIntent Main Function
+  MetaIntentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: lambdas/metaintent.handler
+      Timeout: 30
+      MemorySize: 1024
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionTable
+        - S3CrudPolicy:
+            BucketName: !Ref LogBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+                - bedrock:GetFoundationModel
+                - bedrock:ListFoundationModels
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        MetaIntentAPI:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MetaIntentAPI
+            Path: /metaintent
+            Method: post
+  
+  RouterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: lambdas/router.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionTable
+        - S3CrudPolicy:
+            BucketName: !Ref LogBucket
+      Events:
+        OnboardAPI:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MetaIntentAPI
+            Path: /onboard
+            Method: post
+
+  IntentClassifierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: lambdas/intent.handler
+      MemorySize: 1024
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionTable
+        - S3CrudPolicy:
+            BucketName: !Ref CacheBucket
+        - S3CrudPolicy:
+            BucketName: !Ref LogBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+
+  IdentityVerifierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: lambdas/identity.handler
+      MemorySize: 1024
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionTable
+        - S3CrudPolicy:
+            BucketName: !Ref LogBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - transcribe:StartTranscriptionJob
+                - transcribe:GetTranscriptionJob
+                - textract:AnalyzeDocument
+              Resource: '*'
+
+  APIChainOrchestratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: lambdas/chain.handler
+      Timeout: 120
+      MemorySize: 1024
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionTable
+        - S3CrudPolicy:
+            BucketName: !Ref LogBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+
+  # DynamoDB Table
+  SessionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: MetaIntent-Sessions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: sessionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sessionId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: ttl
+
+  # S3 Buckets
+  CacheBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'metaintent-cache-${AWS::AccountId}'
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldCache
+            Status: Enabled
+            ExpirationInDays: 1
+
+  LogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'metaintent-logs-${AWS::AccountId}'
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldLogs
+            Status: Enabled
+            ExpirationInDays: 7
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${MetaIntentAPI}.execute-api.${AWS::Region}.amazonaws.com'
+  
+  SessionTableName:
+    Description: DynamoDB table name
+    Value: !Ref SessionTable
+  
+  CacheBucketName:
+    Description: S3 cache bucket name
+    Value: !Ref CacheBucket
+  
+  LogBucketName:
+    Description: S3 log bucket name
+    Value: !Ref LogBucket
