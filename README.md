@@ -19,6 +19,27 @@
 
 ---
 
+## 📸 Screenshots
+
+<div align="center">
+
+<table>
+<tr>
+<td width="50%">
+<img src="screenshot-home.png" alt="MetaIntent Home" />
+<p><em>Clean, modern landing page with gradient design</em></p>
+</td>
+<td width="50%">
+<img src="screenshot-chat.png" alt="MetaIntent Chat Interface" />
+<p><em>Interactive AI chat with real-time metrics</em></p>
+</td>
+</tr>
+</table>
+
+</div>
+
+---
+
 ## 🌟 Features
 
 <table>
