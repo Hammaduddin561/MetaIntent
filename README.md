@@ -271,6 +271,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 Made with ❤️ using AWS Bedrock & NVIDIA NIM
 -
--[📝 Report Bug](https://github.com/Hammaduddin561/MetaIntent/issues) • [💡 Request Feature](https://github.com/Hammaduddin561/MetaIntent/issues)
+[📝 Report Bug](https://github.com/Hammaduddin561/MetaIntent/issues) • [💡 Request Feature](https://github.com/Hammaduddin561/MetaIntent/issues)
 
 </div>
