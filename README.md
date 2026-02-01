@@ -270,6 +270,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ### ⭐ Star this repo if you find it helpful!
 
 Made with ❤️ using AWS Bedrock & NVIDIA NIM
-[📝 Report Bug](https://github.com/Hammaduddin561/MetaIntent/issues) • [💡 Request Feature](https://github.com/Hammaduddin561/MetaIntent/issues)
+-
+-[📝 Report Bug](https://github.com/Hammaduddin561/MetaIntent/issues) • [💡 Request Feature](https://github.com/Hammaduddin561/MetaIntent/issues)
 
 </div>
