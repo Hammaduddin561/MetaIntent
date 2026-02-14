@@ -8,7 +8,7 @@ export const ENV = {
   SESSION_TABLE_NAME: process.env.SESSION_TABLE_NAME || 'MetaIntent-Sessions',
   CACHE_BUCKET_NAME: process.env.CACHE_BUCKET_NAME || 'metaintent-cache',
   LOG_BUCKET_NAME: process.env.LOG_BUCKET_NAME || 'metaintent-logs',
-  BEDROCK_MODEL_ID: process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+  BEDROCK_MODEL_ID: process.env.BEDROCK_MODEL_ID || 'meta.llama3-8b-instruct-v1:0',
   NIM_ENDPOINT_NAME: process.env.NIM_ENDPOINT_NAME || 'metaintent-nim',
   PRIMARY_LLM_BACKEND: (process.env.PRIMARY_LLM_BACKEND || 'bedrock') as 'bedrock' | 'nim',
   FALLBACK_LLM_BACKEND: (process.env.FALLBACK_LLM_BACKEND || 'nim') as 'bedrock' | 'nim',

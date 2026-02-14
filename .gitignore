@@ -30,3 +30,9 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Junie IDE files
+.junie/
+
+# Test output
+.output.txt

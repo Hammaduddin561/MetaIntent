@@ -1,5 +1,6 @@
-import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
+import { LLMAdapterFactory } from '../adapters/LLMAdapterFactory';
 import { v4 as uuidv4 } from 'uuid';
+import { DEFAULT_LLM_CONFIG } from '../models/constants';
 
 export type SubAgentType = 'scope' | 'constraints' | 'outcomes' | 'emotions';
 
@@ -25,13 +26,9 @@ export interface SubAgent {
 }
 
 export class SubAgentOrchestrator {
-  private bedrockClient: BedrockRuntimeClient;
-  private readonly modelId = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
   private activeAgents: Map<string, SubAgent> = new Map();
 
-  constructor() {
-    this.bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
-  }
+  constructor() {}
 
   async spawnAgents(
     recommendedStrategy: string,
@@ -94,31 +91,19 @@ export class SubAgentOrchestrator {
     const prompt = this.buildQuestionPrompt(agent, userContext);
 
     try {
-      console.log(`🤖 Using Bedrock for ${agent.type} question generation`);
+      console.log(`🤖 Using adapter for ${agent.type} question generation`);
       
-      // Add timeout to prevent Lambda hanging
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Bedrock timeout')), 4000)
-      );
-      
-      const bedrockPromise = this.bedrockClient.send(new ConverseCommand({
-        modelId: this.modelId,
-        messages: [{ role: 'user', content: [{ text: prompt }] }],
-        inferenceConfig: {
-          maxTokens: 150, // Reduced from 300
-          temperature: 0.7,
-        },
-      }));
+      const adapter = LLMAdapterFactory.getPrimaryAdapter();
+      const response = await adapter.invoke(prompt, {
+        ...DEFAULT_LLM_CONFIG,
+        maxTokens: 150,
+        temperature: 0.7
+      });
 
-      const response = await Promise.race([bedrockPromise, timeoutPromise]);
-
-      const content = response.output?.message?.content?.[0];
-      if (content && 'text' in content && content.text) {
-        agent.currentQuestion = content.text.trim();
-        return agent.currentQuestion;
-      }
+      agent.currentQuestion = response.content.trim();
+      return agent.currentQuestion;
     } catch (error) {
-      console.error(`⚠️ Bedrock failed for ${agent.type}, using fallback`);
+      console.error(`⚠️ LLM failed for ${agent.type}, using fallback`);
     }
 
     // Fallback to smart questions
@@ -132,33 +117,6 @@ export class SubAgentOrchestrator {
     }
     
     return agent.currentQuestion;
-    
-    /* Old disabled code
-    const prompt = this.buildQuestionPrompt(agent, userContext);
-
-    try {
-      const response = await this.bedrockClient.send(new ConverseCommand({
-        modelId: this.modelId,
-        messages: [{ role: 'user', content: [{ text: prompt }] }],
-        inferenceConfig: {
-          maxTokens: 300,
-          temperature: 0.7,
-        },
-      }));
-
-      const content = response.output?.message?.content?.[0];
-      if (content && 'text' in content && content.text) {
-        agent.currentQuestion = content.text.trim();
-        return agent.currentQuestion;
-      }
-    } catch (error) {
-      console.error(`Failed to generate question for ${agent.type} agent:`, error);
-    }
-
-    // Fallback questions
-    agent.currentQuestion = this.getFallbackQuestion(agent.type, agent.questionsAsked);
-    return agent.currentQuestion;
-    */
   }
 
   private buildQuestionPrompt(agent: SubAgent, userContext: string): string {
@@ -204,7 +162,7 @@ Generate the next clarifying question:`;
     // Adapt questions based on what user has said
     if (agent.type === 'scope') {
       if (!hasAnswered) {
-        if (lower.includes('build') || lower.includes('create')) {
+        if (lower.includes('build') || lower.includes('create') || lower.includes('make')) {
           return 'What specific thing do you want to build or create?';
         }
         if (lower.includes('help') || lower.includes('assist')) {
@@ -212,6 +170,9 @@ Generate the next clarifying question:`;
         }
         return 'Can you describe what you want to accomplish in more detail?';
       } else if (agent.questionsAsked === 1) {
+        if (lower.includes('app') || lower.includes('website') || lower.includes('software')) {
+          return 'What are the main features or pages this should have?';
+        }
         return 'What should be included in this, and what should be left out?';
       } else {
         return 'Who is this for, and what scale are you thinking (personal, team, public)?';
@@ -404,38 +365,26 @@ Generate a JSON response:
 Return ONLY valid JSON:`;
 
     try {
-      console.log('🤖 Using Bedrock for findings synthesis');
+      console.log('🤖 Using adapter for findings synthesis');
       
-      // Add timeout to prevent Lambda hanging
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Bedrock timeout')), 6000)
-      );
-      
-      const bedrockPromise = this.bedrockClient.send(new ConverseCommand({
-        modelId: this.modelId,
-        messages: [{ role: 'user', content: [{ text: prompt }] }],
-        inferenceConfig: {
-          maxTokens: 400, // Reduced from 500
-          temperature: 0.4,
-        },
-      }));
+      const adapter = LLMAdapterFactory.getPrimaryAdapter();
+      const response = await adapter.invoke(prompt, {
+        ...DEFAULT_LLM_CONFIG,
+        maxTokens: 400,
+        temperature: 0.4
+      });
 
-      const response = await Promise.race([bedrockPromise, timeoutPromise]);
-
-      const content = response.output?.message?.content?.[0];
-      if (content && 'text' in content && content.text) {
-        const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          return {
-            summary: parsed.summary,
-            extractedIntent: parsed.extractedIntent,
-            confidence: avgConfidence,
-          };
-        }
+      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          summary: parsed.summary,
+          extractedIntent: parsed.extractedIntent,
+          confidence: avgConfidence,
+        };
       }
     } catch (error) {
-      console.error('⚠️ Bedrock synthesis failed, using fallback:', error);
+      console.error('⚠️ LLM synthesis failed, using fallback:', error);
     }
 
     // Fast fallback synthesis

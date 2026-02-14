@@ -1,6 +1,7 @@
-import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
+import { LLMAdapterFactory } from '../adapters/LLMAdapterFactory';
 import { ExtractedIntent } from './IntentSnapshot';
 import { v4 as uuidv4 } from 'uuid';
+import { DEFAULT_LLM_CONFIG } from '../models/constants';
 
 export interface AgentSpecification {
   agentId: string;
@@ -20,12 +21,7 @@ export interface AgentSpecification {
 }
 
 export class AgentGenerator {
-  private bedrockClient: BedrockRuntimeClient;
-  private readonly modelId = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
-
-  constructor() {
-    this.bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
-  }
+  constructor() {}
 
   async generateAgent(
     extractedIntent: ExtractedIntent,
@@ -34,19 +30,14 @@ export class AgentGenerator {
     const prompt = this.buildGenerationPrompt(extractedIntent, conversationHistory);
 
     try {
-      const response = await this.bedrockClient.send(new ConverseCommand({
-        modelId: this.modelId,
-        messages: [{ role: 'user', content: [{ text: prompt }] }],
-        inferenceConfig: {
-          maxTokens: 2000,
-          temperature: 0.5,
-        },
-      }));
+      const adapter = LLMAdapterFactory.getPrimaryAdapter();
+      const response = await adapter.invoke(prompt, { 
+        ...DEFAULT_LLM_CONFIG, 
+        maxTokens: 2000,
+        temperature: 0.5 
+      });
 
-      const content = response.output?.message?.content?.[0];
-      if (content && 'text' in content && content.text) {
-        return this.parseAgentSpec(content.text, extractedIntent);
-      }
+      return this.parseAgentSpec(response.content, extractedIntent);
     } catch (error) {
       console.error('Failed to generate agent:', error);
     }
@@ -55,14 +46,15 @@ export class AgentGenerator {
   }
 
   private buildGenerationPrompt(intent: ExtractedIntent, history: string[]): string {
+    const safeIntent = intent || {};
     return `You are an expert AI agent architect. Based on the clarified user intent, design a complete agent specification.
 
 **User's Refined Intent:**
-- Goal: ${intent.goal || 'Not specified'}
-- Scope: ${intent.scope || 'Not specified'}
-- Constraints: ${intent.constraints?.join(', ') || 'None specified'}
-- Success Criteria: ${intent.successCriteria?.join(', ') || 'Not specified'}
-- Emotional Context: ${intent.emotionalContext || 'None'}
+- Goal: ${safeIntent.goal || 'Not specified'}
+- Scope: ${safeIntent.scope || 'Not specified'}
+- Constraints: ${safeIntent.constraints?.join(', ') || 'None specified'}
+- Success Criteria: ${safeIntent.successCriteria?.join(', ') || 'Not specified'}
+- Emotional Context: ${safeIntent.emotionalContext || 'None'}
 
 **Conversation Context:**
 ${history.slice(-5).join('\n')}
@@ -121,10 +113,11 @@ Return ONLY valid JSON:`;
   }
 
   private createFallbackAgent(intent: ExtractedIntent): AgentSpecification {
+    const safeIntent = intent || {};
     return {
       agentId: uuidv4(),
       name: 'Custom Task Agent',
-      purpose: intent.goal || 'Assist with user-defined task',
+      purpose: safeIntent.goal || 'Assist with user-defined task',
       capabilities: [
         'Understand user requirements',
         'Execute defined tasks',
@@ -132,30 +125,31 @@ Return ONLY valid JSON:`;
         'Handle errors gracefully',
       ],
       scope: {
-        included: [intent.scope || 'User-defined scope'],
+        included: [safeIntent.scope || 'User-defined scope'],
         excluded: ['Tasks outside defined scope'],
       },
-      constraints: intent.constraints || [],
-      successCriteria: intent.successCriteria || ['Task completed successfully'],
+      constraints: safeIntent.constraints || [],
+      successCriteria: safeIntent.successCriteria || ['Task completed successfully'],
       estimatedComplexity: 'moderate',
       suggestedArchitecture: 'single',
-      systemPrompt: this.generateDefaultSystemPrompt(intent),
+      systemPrompt: this.generateDefaultSystemPrompt(safeIntent),
     };
   }
 
   private generateDefaultSystemPrompt(intent: ExtractedIntent): string {
-    return `You are a specialized AI agent designed to help with: ${intent.goal || 'user-defined tasks'}.
+    const safeIntent = intent || {};
+    return `You are a specialized AI agent designed to help with: ${safeIntent.goal || 'user-defined tasks'}.
 
 Your scope includes:
-${intent.scope || 'Working within user-defined boundaries'}
+${safeIntent.scope || 'Working within user-defined boundaries'}
 
 Constraints you must follow:
-${intent.constraints?.map(c => `- ${c}`).join('\n') || '- Follow user guidance'}
+${safeIntent.constraints?.map(c => `- ${c}`).join('\n') || '- Follow user guidance'}
 
 Success criteria:
-${intent.successCriteria?.map(c => `- ${c}`).join('\n') || '- Complete the task effectively'}
+${safeIntent.successCriteria?.map(c => `- ${c}`).join('\n') || '- Complete the task effectively'}
 
-${intent.emotionalContext ? `\nEmotional context: ${intent.emotionalContext}\nBe empathetic and supportive in your responses.` : ''}
+${safeIntent.emotionalContext ? `\nEmotional context: ${safeIntent.emotionalContext}\nBe empathetic and supportive in your responses.` : ''}
 
 Always:
 - Be clear and concise
@@ -216,25 +210,18 @@ Always:
 
   async executeAgent(spec: AgentSpecification, userTask: string): Promise<string> {
     try {
-      const response = await this.bedrockClient.send(new ConverseCommand({
-        modelId: this.modelId,
-        messages: [{ role: 'user', content: [{ text: userTask }] }],
-        system: [{ text: spec.systemPrompt }],
-        inferenceConfig: {
-          maxTokens: 2000,
-          temperature: 0.7,
-        },
-      }));
+      const adapter = LLMAdapterFactory.getPrimaryAdapter();
+      const response = await adapter.invoke(userTask, {
+        ...DEFAULT_LLM_CONFIG,
+        systemPrompt: spec.systemPrompt,
+        maxTokens: 2000,
+        temperature: 0.7
+      });
 
-      const content = response.output?.message?.content?.[0];
-      if (content && 'text' in content && content.text) {
-        return content.text;
-      }
+      return response.content;
     } catch (error) {
       console.error('Agent execution failed:', error);
       return `Error executing agent: ${error}`;
     }
-
-    return 'Agent execution failed';
   }
 }

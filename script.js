@@ -45,13 +45,20 @@ async function sendMessage() {
         console.log('Response status:', response.status);
         console.log('Response headers:', response.headers);
         
-        if (!response.ok) {
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
             const errorText = await response.text();
-            console.error('Error response:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.error('Error parsing JSON:', e);
+            console.error('Raw response:', errorText);
+            throw new Error(`Invalid JSON response from server: ${errorText.substring(0, 100)}`);
         }
-        
-        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('Error response:', data);
+            throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
+        }
         console.log('Response data:', data);
         
         // Handle session ID
@@ -78,6 +85,11 @@ async function sendMessage() {
         // Show generate button when ready
         if (data.status === 'ready' && !data.needsClarification) {
             showGenerateButton();
+        }
+        
+        // Check if Bedrock fallback was used (inform user if so)
+        if (data.response && data.response.includes('Fallback analysis')) {
+            console.log('LLM service unavailable, using local heuristics.');
         }
         
     } catch (error) {
@@ -116,7 +128,7 @@ function addMessage(role, content) {
     
     messageDiv.innerHTML = `
         <div class="message-avatar">
-            <img src="metaintent_icon_64.png" alt="${role}">
+            <img src="metaintent_logo.png" alt="${role}">
         </div>
         <div class="message-content">
             <div class="message-text">${formattedContent}</div>
@@ -150,10 +162,11 @@ function updateStats(data) {
         agentCount = 1;
     }
     
-    document.getElementById('agentsValue').textContent = agentCount;
+    // Safety check for iteration
+    let iteration = data.iteration !== undefined ? data.iteration : 0;
+    if (iteration === 0 && data.response) iteration = 1;
     
-    // Iteration should be at least 1 when we have a response
-    const iteration = data.iteration !== undefined ? (data.iteration + 1) : messageCount;
+    document.getElementById('agentsValue').textContent = agentCount;
     document.getElementById('iterationValue').textContent = iteration;
     console.log('Stats updated - Clarity:', clarity, 'Agents:', agentCount, 'Iteration:', iteration);
 }
@@ -173,7 +186,18 @@ async function generateAgent() {
             body: JSON.stringify({ action: 'generate', sessionId })
         });
         
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            const errorText = await response.text();
+            console.error('Error parsing JSON:', e);
+            throw new Error(`Invalid response from server`);
+        }
+
+        if (!response.ok) {
+            throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
+        }
         
         if (data.agentSpec) {
             const spec = data.agentSpec;

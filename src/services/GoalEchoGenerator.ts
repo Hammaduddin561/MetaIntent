@@ -30,6 +30,12 @@ export class GoalEchoGenerator {
     const stars = this.getConfidenceStars(confidence);
     
     let echo = '🎯 **Here\'s what I understand so far:**\n\n';
+
+    if (!intent) {
+      echo += `**Confidence:** ${(confidence * 100).toFixed(0)}% ${stars}\n\n`;
+      echo += '🤔 Let\'s clarify a few more things to get this just right.';
+      return echo;
+    }
     
     if (intent.goal) {
       echo += `**Goal:** ${intent.goal}\n\n`;
@@ -78,6 +84,7 @@ export class GoalEchoGenerator {
   }
 
   private generateSummary(intent: ExtractedIntent): string {
+    if (!intent) return 'Intent being clarified';
     const parts: string[] = [];
     
     if (intent.goal) {

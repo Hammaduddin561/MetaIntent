@@ -1,4 +1,5 @@
-import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
+import { LLMAdapterFactory } from '../adapters/LLMAdapterFactory';
+import { DEFAULT_LLM_CONFIG } from '../models/constants';
 
 export interface AmbiguitySignals {
   hedgingLanguage: string[];
@@ -20,70 +21,28 @@ export interface AmbiguityAnalysis {
 }
 
 export class AmbiguityDetector {
-  private bedrockClient: BedrockRuntimeClient;
-  private readonly modelId = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
-
-  constructor() {
-    this.bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
-  }
+  constructor() {}
 
   async analyze(userInput: string, conversationHistory: string[] = []): Promise<AmbiguityAnalysis> {
     const prompt = this.buildAnalysisPrompt(userInput, conversationHistory);
 
     try {
-      console.log('🤖 Using Bedrock Claude for ambiguity detection');
+      console.log('🤖 Using adapter for ambiguity detection');
 
-      // Add timeout to prevent Lambda hanging
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Bedrock timeout')), 5000)
-      );
+      const adapter = LLMAdapterFactory.getPrimaryAdapter();
+      const response = await adapter.invoke(prompt, {
+        ...DEFAULT_LLM_CONFIG,
+        maxTokens: 500,
+        temperature: 0.3
+      });
 
-      const bedrockPromise = this.bedrockClient.send(new ConverseCommand({
-        modelId: this.modelId,
-        messages: [{ role: 'user', content: [{ text: prompt }] }],
-        inferenceConfig: {
-          maxTokens: 500, // Reduced from 1000
-          temperature: 0.3,
-        },
-      }));
-
-      const response = await Promise.race([bedrockPromise, timeoutPromise]);
-
-      const content = response.output?.message?.content?.[0];
-      if (content && 'text' in content && content.text) {
-        return this.parseAnalysisResponse(content.text);
-      }
+      return this.parseAnalysisResponse(response.content);
     } catch (error) {
-      console.error('⚠️ Bedrock failed, using fallback:', error);
+      console.error('⚠️ LLM failed, using fallback:', error);
     }
 
     // Fallback to simple detection
     return this.createDefaultAnalysis(userInput);
-
-    /* Old disabled code
-    const prompt = this.buildAnalysisPrompt(userInput, conversationHistory);
-    
-    try {
-      const response = await this.bedrockClient.send(new ConverseCommand({
-        modelId: this.modelId,
-        messages: [{ role: 'user', content: [{ text: prompt }] }],
-        inferenceConfig: {
-          maxTokens: 1000,
-          temperature: 0.3,
-        },
-      }));
-
-      const content = response.output?.message?.content?.[0];
-      if (content && 'text' in content && content.text) {
-        return this.parseAnalysisResponse(content.text);
-      }
-
-      return this.createDefaultAnalysis(userInput);
-    } catch (error) {
-      console.error('Ambiguity detection failed:', error);
-      return this.createDefaultAnalysis(userInput);
-    }
-    */
   }
 
   private buildAnalysisPrompt(userInput: string, history: string[]): string {
@@ -91,7 +50,9 @@ export class AmbiguityDetector {
 
 User Input: "${userInput}"
 
-${history.length > 0 ? `Previous Context:\n${history.join('\n')}\n` : ''}
+${history.length > 0 ? `Previous Context:
+${history.slice(-5).join('\n')}
+` : ''}
 
 Analyze and return a JSON response with:
 {
@@ -189,9 +150,9 @@ Return ONLY valid JSON.`;
     }
 
     // Generic action words without specifics
-    const genericActions = ['build', 'make', 'create', 'do', 'help', 'work'];
+    const genericActions = ['build', 'make', 'create', 'do', 'help', 'work', 'get', 'need'];
     const hasGenericAction = genericActions.some(action => lower.includes(action));
-    const hasSpecificDetails = words.length > 8 || hasNumbers || lower.includes('for') || lower.includes('with');
+    const hasSpecificDetails = words.length > 8 || hasNumbers || lower.includes('for') || lower.includes('with') || hasCapitalizedWords;
     if (hasGenericAction && !hasSpecificDetails) {
       score += 25;
     }
